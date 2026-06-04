@@ -4281,7 +4281,7 @@ def main():
                 df_out_max = df_out.loc[df_out.groupby("自建ID")["申请日期_dt"].idxmax()]
 
                 df_merged = pd.merge(
-                    df_in_max[["自建ID", "表号", "品牌", "客户编号", "申请日期_dt", "表底"]],
+                    df_in_max[["自建ID", "表号", "品牌", "客户编号", "合同号", "申请日期_dt", "表底"]],
                     df_out_max[["自建ID", "申请日期_dt", "表底"]],
                     on="自建ID", how="outer", suffixes=("_in", "_out")
                 )
@@ -5051,7 +5051,7 @@ def main():
                             except Exception as e:
                                 st.warning(f"读取收款记录失败：{e}")
 
-                        # 2. 加载结转留存（成本_不含税）
+                        # 2. 加载结转留存（收入_不含税）
                         carryover_df = pd.DataFrame()
                         if os.path.exists(water_excel_path):
                             try:
@@ -5061,8 +5061,8 @@ def main():
                                         if '期间' not in carryover_df.columns:
                                             st.error("结转留存工作表中缺少“期间”列，无法计算。")
                                             st.stop()
-                                        if '成本_不含税' in carryover_df.columns:
-                                            carryover_df['成本_不含税'] = pd.to_numeric(carryover_df['成本_不含税'],
+                                        if '收入_不含税' in carryover_df.columns:
+                                            carryover_df['收入_不含税'] = pd.to_numeric(carryover_df['收入_不含税'],
                                                                                         errors='coerce').fillna(0)
                             except Exception as e:
                                 st.warning(f"读取结转留存失败：{e}")
@@ -5074,6 +5074,19 @@ def main():
                             cust_df.columns = ['客户编号', '客户名称']
                         else:
                             st.warning(f"客户资料文件不存在：{customer_info_path}，客户名称将显示为客户编号")
+
+                        # 4. 加载水费启用明细获取合同号映射（客户编号 -> 合同号）
+                        contract_map = {}
+                        if os.path.exists(water_excel_path):
+                            try:
+                                df_water_detail = pd.read_excel(water_excel_path, dtype=str)
+                                if '客户编号' in df_water_detail.columns and '合同号' in df_water_detail.columns:
+                                    # 获取每个客户编号对应的合同号（去重）
+                                    df_contract = df_water_detail[['客户编号', '合同号']].drop_duplicates()
+                                    contract_map = dict(zip(df_contract['客户编号'].astype(str), 
+                                                           df_contract['合同号'].fillna('')))
+                            except Exception as e:
+                                st.warning(f"读取水费合同号失败：{e}")
 
                         all_customers = set()
                         if not payment_df.empty:
@@ -5104,22 +5117,22 @@ def main():
                                     prev_payments = cust_payments[cust_payments['期间'] < current_period_start]
                                     prev_payment_notax = prev_payments['收款金额'].sum()
 
-                                # 本月结转（成本_不含税，期间 == period_input）
+                                # 本月结转（收入_不含税，期间 == period_input）
                                 current_carry_notax = 0.0
                                 if not carryover_df.empty:
                                     cust_carry = carryover_df[carryover_df['客户编号'].astype(str) == cust_id]
                                     for _, row in cust_carry.iterrows():
                                         if str(row['期间']).strip() == period_input:
-                                            current_carry_notax += row['成本_不含税']
+                                            current_carry_notax += row['收入_不含税']
 
-                                # 上月累计结转（成本_不含税，期间 < period_input）
+                                # 上月累计结转（收入_不含税，期间 < period_input）
                                 prev_carry_notax = 0.0
                                 if not carryover_df.empty:
                                     cust_carry = carryover_df[carryover_df['客户编号'].astype(str) == cust_id]
                                     for _, row in cust_carry.iterrows():
                                         period_str = str(row['期间']).strip()
                                         if period_str < period_input:
-                                            prev_carry_notax += row['成本_不含税']
+                                            prev_carry_notax += row['收入_不含税']
 
                                 last_month_balance_notax = prev_payment_notax - prev_carry_notax
                                 current_month_balance_notax = last_month_balance_notax + current_payment_notax - current_carry_notax
@@ -5131,9 +5144,13 @@ def main():
                                     if not name_match.empty:
                                         cust_name = name_match.iloc[0]['客户名称']
 
+                                # 获取合同号
+                                contract_no = contract_map.get(cust_id, '')
+
                                 result_rows.append({
                                     '客户编号': cust_id,
                                     '客户名称': cust_name,
+                                    '合同号': contract_no,
                                     '上月余额_不含税': round(last_month_balance_notax, 2),
                                     '本月收款_不含税': round(current_payment_notax, 2),
                                     '本月结转_不含税': round(current_carry_notax, 2),
@@ -5148,6 +5165,7 @@ def main():
                                 total_row = {
                                     '客户编号': '合计',
                                     '客户名称': '',
+                                    '合同号': '',
                                     '上月余额_不含税': result_df['上月余额_不含税'].sum(),
                                     '本月收款_不含税': result_df['本月收款_不含税'].sum(),
                                     '本月结转_不含税': result_df['本月结转_不含税'].sum(),
