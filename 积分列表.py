@@ -6,7 +6,7 @@ import pandas as pd
 from datetime import datetime, timedelta, date
 from playwright.sync_api import Playwright, sync_playwright, expect
 
-BASE_DIR = sys.argv[1] if len(sys.argv) > 1 else r"C:\Users\lenovo\Desktop\财务共享资料"
+BASE_DIR = sys.argv[1] if len(sys.argv) > 1 else os.path.join(os.path.dirname(__file__), "财务共享资料")
 POINTS_FILE = os.path.join(BASE_DIR, "4-报表中心", "积分列表.xlsx")
 POINTS_DB = os.path.join(BASE_DIR, "4-报表中心", "积分列表.db")
 TEMP_DOWNLOAD = os.path.join(BASE_DIR, "4-报表中心", "积分列表_temp.xlsx")
