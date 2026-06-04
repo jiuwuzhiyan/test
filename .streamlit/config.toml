@@ -1,0 +1,9 @@
+[server]
+port = 8502  # 开发版固定用8502端口
+
+[theme]
+primaryColor = "#2c6e9e"          # 主色调（深蓝）
+backgroundColor = "#f5f7f9"       # 背景色（浅灰）
+secondaryBackgroundColor = "#ffffff"  # 卡片背景色
+textColor = "#1e2a3a"             # 文字颜色
+font = "sans serif"               # 字体
