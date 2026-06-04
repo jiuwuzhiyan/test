@@ -372,8 +372,8 @@ def get_points_db(db_path=None):
     :return: PointsDatabase实例
     """
     if db_path is None:
-        _LOCAL_DIR = r"C:\Users\lenovo\Desktop\财务共享资料-测试环境"
-        _UNC_DIR = r"\\172.16.103.130\Users\lenovo\Desktop\财务共享资料-测试环境"
+        _LOCAL_DIR = os.path.join(os.path.dirname(__file__), "财务共享资料")
+        _UNC_DIR = os.path.join(os.path.dirname(__file__), "财务共享资料")
         
         if os.path.exists(_LOCAL_DIR):
             BASE_DIR = _LOCAL_DIR
