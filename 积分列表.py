@@ -197,7 +197,7 @@ def run(playwright: Playwright) -> None:
         with page.expect_popup(timeout=30000) as page1_info:
             page.get_by_text("去查看").click(timeout=10000)
         page1 = page1_info.value
-        time.sleep(10)
+        time.sleep(180)
         log("等待下载链接...")
         download_link = page1.locator("role=row[name=/积分列表.*/i] >> a").first
         download_link.wait_for(state="visible", timeout=30000)
