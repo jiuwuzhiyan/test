@@ -27,7 +27,7 @@ def run(playwright: Playwright) -> None:
     download = download_info.value
 
     # --- 完善下载保存部分 ---
-    save_dir = r"C:\Users\lenovo\Desktop\财务共享资料\2-能耗系统数据"
+    save_dir = os.path.join(os.path.dirname(__file__), "财务共享资料", "2-能耗系统数据")
     os.makedirs(save_dir, exist_ok=True)          # 自动创建目录（如已存在则跳过）
     download.save_as(os.path.join(save_dir, "能耗余额.xls"))
     print(f"文件已保存至：{save_dir}\\能耗余额.xls")
