@@ -67,7 +67,7 @@ def run(playwright: Playwright) -> None:
     page1.locator("iframe[name=\"iframeSystem\"]").content_frame.get_by_text("其他记录").click()
     time.sleep(1)
 
-    save_dir = r"C:\Users\lenovo\Desktop\财务共享资料\2-能耗系统数据"
+    save_dir = os.path.join(os.path.dirname(__file__), "财务共享资料", "2-能耗系统数据")
     save_path = os.path.join(save_dir, "财务订单.xls")
     os.makedirs(save_dir, exist_ok=True)
 
