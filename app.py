@@ -15,6 +15,7 @@ from io import BytesIO
 import time
 import shutil
 from datetime import date, datetime, timedelta
+import threading
 
 # ---------- 全局文件基础目录 ----------
 import platform
@@ -342,6 +343,68 @@ def update_points_list(base_dir):
         return False, "操作超时（10分钟）"
     except Exception as e:
         return False, f"更新出错: {str(e)}"
+
+# ---------- 后台任务管理 ----------
+class BackgroundTaskManager:
+    _instance = None
+    
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super().__new__(cls)
+            cls._instance._lock = threading.Lock()
+            cls._instance._is_running = False
+            cls._instance._result = None
+            cls._instance._thread = None
+        return cls._instance
+    
+    def is_task_running(self):
+        with self._lock:
+            return self._is_running
+    
+    def get_result(self):
+        with self._lock:
+            return self._result
+    
+    def _run_update(self, base_dir):
+        """在后台线程中执行更新任务"""
+        try:
+            self._result = update_points_list(base_dir)
+        except Exception as e:
+            self._result = (False, f"后台任务异常: {str(e)}")
+        finally:
+            with self._lock:
+                self._is_running = False
+    
+    def start_update(self, base_dir):
+        """启动后台更新任务"""
+        with self._lock:
+            if self._is_running:
+                return False, "已有任务在运行中"
+            
+            self._is_running = True
+            self._result = None
+            self._thread = threading.Thread(
+                target=self._run_update,
+                args=(base_dir,),
+                daemon=True
+            )
+            self._thread.start()
+            return True, "任务已启动"
+
+def start_background_points_update(base_dir):
+    """启动后台积分列表更新"""
+    manager = BackgroundTaskManager()
+    return manager.start_update(base_dir)
+
+def is_points_update_running():
+    """检查积分列表更新是否正在运行"""
+    manager = BackgroundTaskManager()
+    return manager.is_task_running()
+
+def get_points_update_result():
+    """获取积分列表更新结果"""
+    manager = BackgroundTaskManager()
+    return manager.get_result()
 
 def add_total_row_to_export(df):
     """
@@ -6307,14 +6370,23 @@ def main():
             btn_points, empty1, empty2, empty3 = st.columns(4)
             with btn_points:
                 st.markdown("##### 🎫 积分列表")
-                if st.button("📥 更新积分列表", use_container_width=True, key="btn_points_list"):
-                    with st.spinner("正在更新积分列表..."):
-                        success, msg = update_points_list(BASE_DIR)
-                        if success:
-                            st.success(f"✅ {msg}")
-                            st.rerun()
-                        else:
-                            st.error(f"❌ {msg}")
+                if is_points_update_running():
+                    with st.spinner("⏳ 数据更新中..."):
+                        st.info("数据将于3分钟后更新，请勿重复点击")
+                        result = get_points_update_result()
+                        if result is not None:
+                            success, msg = result
+                            if success:
+                                st.success(f"✅ {msg}")
+                            else:
+                                st.error(f"❌ {msg}")
+                elif st.button("📥 更新积分列表", use_container_width=True, key="btn_points_list"):
+                    success, msg = start_background_points_update(BASE_DIR)
+                    if success:
+                        st.info("📊 数据将于3分钟后更新，请勿重复点击")
+                        st.rerun()
+                    else:
+                        st.warning(f"⚠️ {msg}")
                 points_db_file = os.path.join(BASE_DIR, "4-报表中心", "积分列表.db")
                 st.caption(f"最后更新: {get_formatted_file_mod_time(points_db_file)}")
 
