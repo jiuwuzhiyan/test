@@ -20,8 +20,8 @@ from datetime import date, datetime, timedelta
 import platform
 
 # 尝试本地路径，如果不存在则使用 UNC 共享路径（给同事用）
-_LOCAL_DIR = r"C:\Users\lenovo\Desktop\财务共享资料"
-_UNC_DIR = r"\\172.16.103.130\Users\lenovo\Desktop\财务共享资料"
+_LOCAL_DIR = os.path.join(os.path.dirname(__file__), "财务共享资料")
+_UNC_DIR = os.path.join(os.path.dirname(__file__), "财务共享资料")
 
 if os.path.exists(_LOCAL_DIR):
     BASE_DIR = _LOCAL_DIR
@@ -42,7 +42,7 @@ invoice_info_path = os.path.join(BASE_DIR, "0-模板", "开票信息.xlsx")
 tenant_overview_path = os.path.join(BASE_DIR, "2-能耗系统数据", "租户概览.xls")
 
 # 其他本地路径
-archive_path = r"D:\BaiduSyncdisk\7-能源系统\结转留存.xlsx"          # 电费结转存档
+archive_path = os.path.join(BASE_DIR, "9-数据库", "结转留存.xlsx")          # 电费结转存档
 balance_path = os.path.join(BASE_DIR, "1-金蝶系统数据", "辅助核算项目余额表.xlsx")
 energy_balance_path = os.path.join(BASE_DIR, "2-能耗系统数据", "能耗余额.xls")
 cwj_order_path = os.path.join(BASE_DIR, "2-能耗系统数据", "财务订单.xls")
